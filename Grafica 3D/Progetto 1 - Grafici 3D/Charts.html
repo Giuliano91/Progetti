@@ -1,0 +1,203 @@
+<html>
+	<head>
+		<title>Interactive 3D Graphics - Project 1 - 3D Charts</title>
+		<style>		
+		body {
+			font-family: Monospace;
+			background-color: #000000;
+			margin: 0px;
+			overflow: hidden;
+		}		
+		canvas { 
+			width: 100%; 
+			height: 100%;
+		}	
+	</style>
+		<script src="lib/Three.min.js"></script>
+		<script src="lib/OrbitAndPanControls.js"></script>
+		<script src="lib/JQuery.min.js"></script>
+        <!-- This file contains our custom functions for the project. -->
+        <script src="lib/Functions.js"></script>
+        <script src="lib/Dat.gui.js"></script>
+        <script src="lib/helvetiker_regular.typeface.js"></script>
+	</head>
+	<body>	    
+		<script>
+            
+            /* SCENE SETUP */
+            
+            // Setup of the scene, including instructions to move and zoom in/out the camera around the objects of the scene
+            var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );            
+			var renderer = new THREE.WebGLRenderer({antialias:true});            
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor( 0xf0f0f0 );
+			document.body.appendChild( renderer.domElement ); 
+            controls = new THREE.OrbitAndPanControls( camera, renderer.domElement );
+            controls.addEventListener( 'change', render );
+            window.addEventListener( 'resize', onWindowResize, false );               
+            
+            /* GUI SETUP */
+            
+            // Setup of the GUI to control the properties of the random table and graphs            
+            var params = {
+                Rows : 6,
+                Columns : 6,
+                Max_Value : 20,
+                Chart : 'Main Page',
+                Color_Set: 'Set 1',
+                Reset_Highlight:function(){},
+                Row_To_Show: 1
+            } 
+            
+            var gui = new dat.GUI();
+            
+            // Panel with options to control the attributes of the table
+            var tableFolder = gui.addFolder('Table');
+            var rowsNumber = tableFolder.add(params, 'Rows').min(1).max(6).step(1);
+            var columnsNumber = tableFolder.add(params, 'Columns').min(1).max(6).step(1);            
+            var maxValue = tableFolder.add(params, 'Max_Value').min(2).max(20).step(1);
+            tableFolder.open();
+            
+            // Panel with options to control the attributes of the graphs
+            var chartFolder = gui.addFolder('Chart');
+            var chart = chartFolder.add(params, 'Chart',['Main Page','Pie Chart','Bar Chart','Area Chart']);
+            var colorSet = chartFolder.add(params, 'Color_Set',['Set 1','Set 2']);
+            var reset = chartFolder.add(params, 'Reset_Highlight');
+            chartFolder.open();    
+            
+            /* Additional option is a panel of options to use with pie chart; it allows to the user 
+            to select the row to show in pie chart*/
+            var additionalOptions = gui.addFolder("Additional Options");            
+            var rowToShow = additionalOptions.add(params, 'Row_To_Show').min(1).max(params.Rows).step(1); 
+                         
+            /* Every time that the number of random rows is changed, 
+            the new max value for "row to show" option is updated */
+            rowsNumber.onChange(function(value) {
+                rowToShow.max(params.Rows);    
+            });            
+            
+            // The first time, the color set menu isn't shown
+            var colorSetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(3)';
+            $(colorSetSelector).hide();
+            
+            // We use JQuery to handle GUI controls 
+            
+            // If main page is selected, the reset button isn't shown 
+            var resetSelector = 'div.dg li.folder:nth-child(2) li:nth-child(4)';
+            $(resetSelector).hide();
+            
+            // If pie chart isn't selected, the panel with additional options isn't shown
+            var additionalOptionsSelector = 'div.dg li.folder:nth-child(3)';
+            $(additionalOptionsSelector).hide();
+            additionalOptions.open();            
+               
+            /* INTRO TEXT SETUP */
+            
+            showIntroText();     
+                        
+            /* COLOR SETUP */ 
+            
+            // Set up of the color sets that can be selected by the user   
+            var colors = new Array();
+            // A default color set is provided
+            colors.push(0x00ff00);
+            colors.push(0xffff00);
+            colors.push(0xFF0049);
+            colors.push(0x0E28E8);
+            colors.push(0x4B0082);
+            colors.push(0x30D5C8);              
+            
+             /* DATA SETUP */
+            
+            // Data matrix is loaded with default data
+            data = new Array();
+            data = generateData(params.Rows,params.Columns,1,params.Max_Value);            
+        
+            /* CHART SETUP */             
+            
+            chart.onChange(function (value){
+                
+                // This call loads the hightlight feature for the chart
+                loadHighlight();
+                
+                // As soon as the first chart is made, the color set button is shown                
+                $(colorSetSelector).show();
+                
+                switch(params.Chart){
+                        
+                    case 'Pie Chart':
+                        // The panel with the additional options for the pie chart is shown, the reset button isn't shown
+                        $(additionalOptionsSelector).show();
+                        $(resetSelector).show();
+                        // The scene is cleared
+                        scene = new THREE.Scene();  
+                        // This call changes the color set and redraw the pie chart
+                        loadChartColor();
+                        // If there aren't changes on the color set, the pie chart is shown with the default colors.
+                        showPieChart();                          
+                        camera.position.z=25;   
+                        camera.position.y=23; 
+                        camera.position.x=10;                     
+                    break;
+                        
+                    case 'Bar Chart':
+						// The panel with the additional options for the pie chart is hidden, the reset button is shown
+                        $(additionalOptionsSelector).hide();
+                        $(resetSelector).show();
+						// The scene is cleared						
+                        scene = new THREE.Scene();
+						// This call changes the color set and redraw the bar chart
+                        loadChartColor();
+                        // If there aren't changes on the color set, the bar chart is shown with the default colors.
+                        showBarChart();                       
+                        camera.position.z=25;   
+                        camera.position.y=23; 
+                        camera.position.x=10;                       
+                    break;
+                        
+                    case 'Area Chart':
+						// The panel with the additional options for the pie chart is hidden, the reset button is shown
+                        $(additionalOptionsSelector).hide();
+                        $(resetSelector).show();
+						// The scene is cleared
+						scene = new THREE.Scene();
+						// This call changes the color set and redraw the area chart
+                        loadChartColor();
+						// If there aren't changes on the color set, the area chart is shown with the default colors.             
+                        showAreaChart();                           
+                        camera.position.z=25;   
+                        camera.position.y=23; 
+                        camera.position.x=10;
+                    break;            
+                        
+                    case 'Main Page': 
+                        $(resetSelector).hide();
+                        showIntroText();
+						// The panel with the additional options for the pie chart is hidden
+                        $(additionalOptionsSelector).hide();					
+                     break;
+                }
+                
+                // Management of the reset button; it shows again the same chart
+                reset.onChange(function (value){
+                    switch(params.Chart){
+                        case 'Pie Chart':
+                            showPieChart();
+                        break;
+                        case 'Bar Chart':
+                            showBarChart();
+                        break;                            
+                        case 'Area Chart':
+                            showAreaChart();
+                        break;                        
+                    }                    
+                });                
+            }); 
+       
+            animate();
+			render();  
+            
+		</script>
+	</body>
+</html>
