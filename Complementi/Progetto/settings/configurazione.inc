@@ -1,0 +1,9 @@
+<?php
+define('HOME_ROOT',realpath(dirname(__FILE__).'/../'));
+define('HOME_WEB','/Complementi/Progetto/');
+define('SERVER','localhost');
+define('UTENTE','root');
+define('PASSWORD','');
+define('DATABASE','ecommerce');
+session_start();
+?>
