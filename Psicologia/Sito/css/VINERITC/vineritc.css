@@ -1,8 +1,0 @@
-@font-face {
-    font-family: 'VinerHandITCRegular';
-    src: url('vineritc.eot');
-    src: url('vineritc.eot') format('embedded-opentype'),
-         url('vineritc.woff') format('woff'),
-         url('vineritc.ttf') format('truetype'),
-         url('vineritc.svg#VinerHandITCRegular') format('svg');
-}
